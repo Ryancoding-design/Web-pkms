@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createClient } from '@supabase/supabase-client';
+import { createClient } from '@supabase/supabase-js';
 
 // Vercel otomatis membaca variabel ini karena prefix VITE_ tadi
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
