@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// Vercel otomatis membaca variabel ini karena prefix VITE_ tadi
+// Membaca variabel env Supabase & Telegram
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
 export default function App() {
   const [nama, setNama] = useState('');
@@ -23,13 +26,30 @@ export default function App() {
     setPesan({ tipe: '', teks: '' });
 
     try {
+      // 1. Masukkan data ke Supabase terlebih dahulu
       const { error } = await supabase
         .from('anggota_pkms')
         .insert([{ nama_lengkap: nama, no_whatsapp: whatsapp }]);
 
       if (error) throw error;
 
-      setPesan({ tipe: 'sukses', teks: 'Berhasil! Calon pendekar telah terdaftar.' });
+      // 2. Jika sukses, kirim notifikasi ke Telegram Bot
+      const teksTelegram = `🔔 *Pendaftaran Baru PKMS!*\n\n👤 *Nama:* ${nama}\n📱 *WhatsApp:* https://wa.me/${whatsapp.replace(/^0/, '62')}\n\n_Data berhasil disimpan ke Supabase._`;
+
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: teksTelegram,
+          parse_mode: 'Markdown', // Mengaktifkan format bold/italic
+        }),
+      });
+
+      // 3. Reset form dan tampilkan pesan sukses
+      setPesan({ tipe: 'sukses', teks: 'Berhasil! Calon pendekar telah terdaftar dan notifikasi terkirim.' });
       setNama('');
       setWhatsapp('');
     } catch (error) {
@@ -44,7 +64,7 @@ export default function App() {
       <div style={{ backgroundColor: '#1e293b', padding: '30px', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.5)' }}>
         <h2 style={{ textAlign: 'center', color: '#38bdf8', marginBottom: '10px' }}>Pendaftaran PKMS</h2>
         <p style={{ textAlign: 'center', fontSize: '14px', color: '#94a3b8', marginBottom: '25px' }}>Silakan masukkan data diri calon anggota</p>
-        
+
         {pesan.teks && (
           <div style={{ padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '14px', textAlign: 'center', backgroundColor: pesan.tipe === 'sukses' ? '#15803d' : '#b91c1c', color: '#ffffff' }}>
             {pesan.teks}
@@ -68,3 +88,4 @@ export default function App() {
     </div>
   );
 }
+
