@@ -68,4 +68,3 @@ export default function App() {
     </div>
   );
 }
-// Build ulang dengan author yang bener
